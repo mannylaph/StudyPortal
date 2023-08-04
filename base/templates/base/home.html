@@ -41,7 +41,7 @@
                  <a href="{% url 'the_room' room.id %}">{{room.name}}</a>
             </h4>
             <small>{{room.topic.name}}</small><br>
-            <small>{{room.created.date}}</small>
+            <small>{{room.created.date | timesince}} ago</small>
             <hr>
         </div>
 
