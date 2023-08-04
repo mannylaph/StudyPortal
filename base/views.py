@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.db.models import Q
 from django.contrib.auth.forms import UserCreationForm
-from base.models import Room, Topic
+from base.models import Room, Topic, Message
 from base.forms import RoomForm
 
 
@@ -99,12 +99,24 @@ def home(request):
 #Room room page logic
 def room(request,pk):
     room = Room.objects.get(id = pk)
-    room_messages = room.message_set.all().order_by('created')
+    room_messages = room.message_set.all().order_by('-created')
+    participants = room.participants.all()
+
+    if request.method == 'POST':
+        message = Message.objects.create(
+            user = request.user,
+            room = room,
+            body = request.POST.get('body')
+        )
+        room.participants.add(request.user)
+        return redirect('the_room', pk=room.id)
+
+
     # room = None
     # for i in rooms:
     #     if i['id'] == int(pk):
     #         room =i
-    context = {'room':room, 'room_messages':room_messages}
+    context = {'room':room, 'room_messages':room_messages, 'participants':participants}
     return render(request, 'base/room.html',context)
 
 
@@ -161,3 +173,18 @@ def deleteRoom(request,pk):
         return redirect("Homepage")
     return render(request, 'base/delete.html', {'obj':room})
    
+
+
+   #logic for deleting Messages
+@login_required(login_url ='/login') # Restricts this function to authenicated users only
+def deleteMessage(request,pk):
+    message =Message.objects.get(id=pk)
+
+        #Prevents non-super admins from using this function
+    if request.user != message.user:
+        return HttpResponse('You have no permission to do this')
+    
+    if request.method == 'POST':
+        message.delete()
+        return redirect("Homepage")
+    return render(request, 'base/delete.html', {'obj':message})
